@@ -332,7 +332,7 @@ ui <- navbarPage(
 server <- function(input, output, session) {
 
   dict <- reactiveVal(SMART::i18n_load("tr"))
-  T_   <- function(key, default = NULL) i18n_t(dict(), key, default)
+  T_   <- function(key, default = NULL) SMART::i18n_t(dict(), key, default)
 
   observeEvent(input$lang, {
     dict(SMART::i18n_load(input$lang))
