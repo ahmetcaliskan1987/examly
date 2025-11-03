@@ -6,7 +6,7 @@ Authors@R:
              email = "ahmetcaliskan1987@gmail.com", role = c("aut","cre")),
       person(given = "Abdullah Faruk", family = "Kılıç",
              email = "afarukkilic@trakya.edu.tr", role = "aut"))
-Description: A Shiny-based toolkit for item/test analysis. It is designed for multiple-choice, true-false, and open-ended questions. The toolkit is usable with datasets in 1-0 or other formats. Key analyses include difficulty, discrimination, response-option analysis, student reports, and word (.docx) exports.
+Description: A Shiny-based toolkit for item/test analysis. It is designed for multiple-choice, true-false, and open-ended questions. The toolkit is usable with datasets in 1-0 or other formats. Key analyses include difficulty, discrimination, response-option analysis, reports.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Depends: 
