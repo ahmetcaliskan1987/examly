@@ -182,5 +182,24 @@
   "Value": "Değer",
   "NeedItemTypesKeys": "Lütfen madde türlerini ve anahtarları girin.",
   "StudentWord": "Öğrenci",
-  "FileReadError": "Dosya okunamadı. CSV biçimini ve ayraç/encoding ayarlarını kontrol edin."
+  "FileReadError": "Dosya okunamadı. CSV biçimini ve ayraç/encoding ayarlarını kontrol edin.",
+
+  "StudentSummaryHeader": "Puan Dağılım Özeti",
+  "StudentsPassed50": "Ağırlıklı puana göre 50 ve üzeri alan öğrenci sayısı",
+  "TotalStudents": "Toplam",
+  "GradeDistributionTitle": "Puan Kategorilerine Göre Öğrenci Dağılımı",
+  "GradeCategory": "Puan Kategorisi",
+  "StudentCount": "Öğrenci Sayısı",
+  "Grade.Fail": "0-49.99 (Geçmez)",
+  "Grade.Pass": "50-59.99 (Geçer)",
+  "Grade.Medium": "60-69.99 (Orta)",
+  "Grade.Good": "70-84.99 (İyi)",
+  "Grade.Excellent": "85-100 (Pekiyi)",
+  "DistractorHighlightsHeader": "Madde Özeti",
+  "MostCorrectItem": "En çok doğru yapılan madde",
+  "MostWrongItem": "En çok yanlış yapılan madde",
+  "MostBlankItem": "En çok boş bırakılan madde",
+  "CountUnit": "kişi",
+  "NotApplicable": "N/A",
+  "WaitingForScores": "Puanlar hesaplanıyor..."
 }

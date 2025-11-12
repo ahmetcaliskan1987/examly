@@ -5,6 +5,8 @@ library(readr); library(readxl)
 library(officer); library(flextable); library(glue)
 library(magrittr)
 library(examly)
+library(ggplot2)
+library(ggpubr)
 
 title_default <- "Sınav Başlığı"
 
@@ -179,6 +181,9 @@ ui <- navbarPage(
     fluidPage(
       h3(textOutput("title_display8")),
       uiOutput("distractor_item_picker"),
+      tags$hr(),
+      h4(textOutput("distractor_highlights_header")),
+      uiOutput("distractor_highlights_ui"),
       hr(), h4(textOutput("distractor_comment_hdr")),
       verbatimTextOutput("distractor_comment"),
       hr(), h4(textOutput("distractor_table_hdr")),
@@ -190,7 +195,11 @@ ui <- navbarPage(
     title = textOutput("tab_student_results", container = span),
     fluidPage(
       h3(textOutput("title_display5")),
-      uiOutput("student_table_html")
+      uiOutput("student_table_html"),
+      tags$hr(),
+      h4(textOutput("student_summary_header", container = span)),
+      uiOutput("student_summary_text_ui"),
+      plotOutput("student_grade_plot", height = "400px")
     )
   ),
 
@@ -261,6 +270,7 @@ server <- function(input, output, session) {
   output$what_it_means_items<- renderText({ T_("WhatItMeans", "Ne anlama geliyor?") })
   output$tab_distractor         <- renderText( T_("Distractor", "Çeldirici Analizi") )
   output$distractor_comment_hdr <- renderText( T_("DistractorCommentHeader", "Yorum") )
+  output$distractor_highlights_header <- renderText( T_("DistractorHighlightsHeader", "Madde Özeti") )
   output$distractor_table_hdr   <- renderText( T_("DistractorTableHeader", "Seçenek Dağılımları") )
   output$tab_student_results <- renderText( T_("StudentResults", "Öğrenci Sonuçları") )
 
@@ -322,6 +332,8 @@ server <- function(input, output, session) {
   output$lc_header     <- renderText( T_("LCHeader","Uzun Cevaplı (Açık Uçlu) Maddeler") )
   output$lc_note       <- renderText( T_("LCNote","Not: Uzun cevaplı maddelerin veri setindeki değerleri öğrencinin o soruda aldığı puan olmalıdır.") )
   output$weights_header<- renderText( T_("WeightsHeader","Madde Puan Katsayıları (Maksimum)") )
+  output$tab_student_results <- renderText( T_("StudentResults", "Öğrenci Sonuçları") )
+  output$student_summary_header <- renderText( T_("StudentSummaryHeader", "Puan Dağılım Özeti") )
 
   observeEvent(dict(), {
     new_default <- T_("ExamTitleDefault", "Sınav Başlığı")
@@ -917,6 +929,75 @@ server <- function(input, output, session) {
     )
   })
 
+  student_scores_processed <- reactive({
+    s <- test_summary()
+    validate(need(!is.null(s) && !is.null(s$weighted_total) && !is.null(s$max_weighted) && s$max_weighted > 0,
+                  T_("WaitingForScores", "Puanlar hesaplanıyor veya maksimum puan 0...")))
+
+    percent_scores <- (s$weighted_total / s$max_weighted) * 100
+
+    count_pass_50 <- sum(percent_scores >= 50, na.rm = TRUE)
+
+    dict()
+    score_labels_i18n <- c(
+      T_("Grade.Fail", "0-49.99 Geçmez"),
+      T_("Grade.Pass", "50-59.99 Geçer"),
+      T_("Grade.Medium", "60-69.99 Orta"),
+      T_("Grade.Good", "70-84.99 İyi"),
+      T_("Grade.Excellent", "85-100 Pekiyi")
+    )
+
+    score_breaks <- c(-Inf, 49.99, 59.99, 69.99, 84.99, 100)
+
+    grades <- cut(percent_scores, breaks = score_breaks, labels = score_labels_i18n, right = TRUE)
+
+    df_grades <- data.frame(Grades = grades)
+
+    list(
+      count_pass_50 = count_pass_50,
+      n_total = length(percent_scores),
+      df_grades = df_grades,
+      grades_i18n = score_labels_i18n
+    )
+  })
+
+  item_highlights <- reactive({
+    s <- test_summary()
+    validate(need(!is.null(s) && !is.null(s$sc_bin), T_("WaitingForScores", "Puanlar hesaplanıyor...")))
+
+    sc_bin <- s$sc_bin
+    n_total <- s$n_stu
+
+    binary_items <- setdiff(colnames(sc_bin), lc_items_use())
+
+    if (length(binary_items) == 0 || n_total == 0) {
+      return(list(most_correct = NA_character_, correct_count = 0,
+                  most_wrong = NA_character_,   wrong_count = 0,
+                  most_blank = NA_character_,   blank_count = 0,
+                  n_total = n_total))
+    }
+
+    sc_bin_binary_only <- sc_bin[, binary_items, drop = FALSE]
+
+    n_correct <- colSums(sc_bin_binary_only == 1, na.rm = TRUE)
+    n_wrong   <- colSums(sc_bin_binary_only == 0, na.rm = TRUE)
+    n_blank   <- colSums(is.na(sc_bin_binary_only), na.rm = TRUE)
+
+    item_most_correct <- if(all(is.na(n_correct)) || length(n_correct)==0 || all(n_correct == 0)) NA_character_ else names(n_correct)[which.max(n_correct)]
+    item_most_wrong   <- if(all(is.na(n_wrong)) || length(n_wrong)==0 || all(n_wrong == 0)) NA_character_ else names(n_wrong)[which.max(n_wrong)]
+    item_most_blank   <- if(all(is.na(n_blank)) || length(n_blank)==0 || all(n_blank == 0)) NA_character_ else names(n_blank)[which.max(n_blank)]
+
+    list(
+      most_correct = item_most_correct,
+      correct_count = if(is.na(item_most_correct)) 0 else n_correct[item_most_correct],
+      most_wrong = item_most_wrong,
+      wrong_count = if(is.na(item_most_wrong)) 0 else n_wrong[item_most_wrong],
+      most_blank = item_most_blank,
+      blank_count = if(is.na(item_most_blank)) 0 else n_blank[item_most_blank],
+      n_total = n_total
+    )
+  })
+
   output$weighted_mean_text <- renderText({
     paste0(T_("WeightedMean", "Sınav Ortalaması:"), " ", round(summary_stats$weighted_mean, 2))
   })
@@ -1125,6 +1206,42 @@ server <- function(input, output, session) {
     selectInput("distr_item", T_("DistractorPickItem","Madde seçin"), choices = mc_items_use())
   })
 
+  output$distractor_highlights_ui <- renderUI({
+    h <- item_highlights()
+    req(h)
+    dict()
+
+    style_box <- "padding: 10px; border: 1px solid #ddd; border-radius: 5px; background: #f9f9f9; margin-bottom: 8px;"
+    style_label <- "font-weight: bold; color: #333;"
+    style_value_g <- "font-weight: bold; color: #28a745;"
+    style_value_r <- "font-weight: bold; color: #dc3545;"
+    style_value_b <- "font-weight: bold; color: #6c757d;"
+
+    create_highlight_box <- function(label_key, default_label, value, count, n_total, style_val) {
+      if (is.na(value) || is.null(value)) {
+        value_str <- T_("NotApplicable", "N/A")
+        count_str <- ""
+      } else {
+        value_str <- value
+        pct_str <- if (n_total > 0) sprintf("(%.1f%%)", (count / n_total) * 100) else ""
+        count_str <- paste0(" (", count, " ", T_("CountUnit", "kişi"), ") ", pct_str)
+      }
+
+      tags$div(
+        style = style_box,
+        tags$span(style = style_label, T_(label_key, default_label), ": "),
+        tags$span(style = style_val, value_str),
+        tags$span(style="color: #555;", count_str)
+      )
+    }
+
+    tagList(
+      create_highlight_box("MostCorrectItem", "En çok doğru yapılan madde", h$most_correct, h$correct_count, h$n_total, style_value_g),
+      create_highlight_box("MostWrongItem", "En çok yanlış yapılan madde", h$most_wrong, h$wrong_count, h$n_total, style_value_r),
+      create_highlight_box("MostBlankItem", "En çok boş bırakılan madde", h$most_blank, h$blank_count, h$n_total, style_value_b)
+    )
+  })
+
   output$distractor_comment <- renderText({
     dict(); req(input$distr_item)
     tb <- compute_distractor(input$distr_item)
@@ -1254,6 +1371,56 @@ server <- function(input, output, session) {
                tags$thead(header1, header2),
                tags$tbody(rows)
     )
+  })
+
+  output$student_summary_text_ui <- renderUI({
+    s_proc <- student_scores_processed()
+    req(s_proc)
+    dict()
+
+    pass_text <- T_("StudentsPassed50", "Ağırlıklı puana göre 50 ve üzeri alan öğrenci sayısı")
+        pct_str <- ""
+    if (s_proc$n_total > 0) {
+      pct_pass <- (s_proc$count_pass_50 / s_proc$n_total) * 100
+      pct_str <- sprintf(" (%%%.1f)", pct_pass)
+    }
+
+    tags$p(
+      style = "font-size: 16px;",
+      strong(paste0(pass_text, ": ", s_proc$count_pass_50, pct_str)),
+      " (", T_("TotalStudents", "Toplam"), ": ", s_proc$n_total, ")"
+    )
+  })
+
+  output$student_grade_plot <- renderPlot({
+    s_proc <- student_scores_processed()
+    req(s_proc, nrow(s_proc$df_grades) > 0)
+    dict()
+    df_plot <- s_proc$df_grades %>%
+      dplyr::group_by(Grades) %>%
+      dplyr::summarise(Count = n(), .groups = 'drop') %>%
+      tidyr::complete(Grades = factor(s_proc$grades_i18n, levels = s_proc$grades_i18n),
+                      fill = list(Count = 0)) %>%
+      dplyr::mutate(
+        Total = sum(Count),
+        Pct = ifelse(Total == 0, 0, Count / Total),
+        Label = ifelse(Count == 0, "", sprintf("%d\n(%.1f%%)", Count, Pct * 100))
+      )
+
+
+    ggplot(df_plot, aes(x = Grades, y = Count, fill = Grades)) +
+      geom_bar(stat = "identity", show.legend = FALSE) +
+      geom_text(aes(label = Label), vjust = -0.5, size = 4.5, lineheight = 0.9) +
+      scale_y_continuous(expand = expansion(mult = c(0, 0.15))) +
+      labs(
+        title = T_("GradeDistributionTitle", "Puan Kategorilerine Göre Öğrenci Dağılımı"),
+        x = T_("GradeCategory", "Puan Kategorisi"),
+        y = T_("StudentCount", "Öğrenci Sayısı")
+      ) +
+      theme_minimal(base_size = 14) +
+      theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size=12),
+            plot.title = element_text(size = 18, face = "bold"),
+            axis.title = element_text(size = 14))
   })
 
   make_student_df <- function(s, mcN, tfN, binN, lcN, names_vec){
@@ -1423,6 +1590,54 @@ server <- function(input, output, session) {
         ft_students <- fit_to_width(ft_students, max_width = 9.5)
 
         doc <- body_add_flextable(doc, ft_students)
+
+        s_proc <- student_scores_processed()
+        if (!is.null(s_proc)) {
+          pass_text <- T_("StudentsPassed50", "Ağırlıklı puana göre 50 ve üzeri alan öğrenci sayısı")
+          summary_p_text <- paste0(
+            pass_text, ": ", s_proc$count_pass_50,
+            " (", T_("TotalStudents", "Toplam"), ": ", s_proc$n_total, ")"
+          )
+
+          doc <- body_add_par(doc, "")
+          doc <- body_add_par(doc, summary_p_text, style = "Normal")
+        }
+
+        if (!is.null(s_proc) && nrow(s_proc$df_grades) > 0) {
+
+          df_plot <- s_proc$df_grades %>%
+            dplyr::group_by(Grades) %>%
+            dplyr::summarise(Count = n(), .groups = 'drop') %>%
+            tidyr::complete(Grades = factor(s_proc$grades_i18n, levels = s_proc$grades_i18n),
+                            fill = list(Count = 0)) %>%
+          dplyr::mutate(
+            Total = sum(Count),
+            Pct = ifelse(Total == 0, 0, Count / Total),
+            Label = ifelse(Count == 0, "", sprintf("%d\n(%.1f%%)", Count, Pct * 100))
+          )
+
+
+          p <- ggplot(df_plot, aes(x = Grades, y = Count, fill = Grades)) +
+            geom_bar(stat = "identity", show.legend = FALSE) +
+            geom_text(aes(label = Label), vjust = -0.5, size = 3.5, lineheight = 0.9) +
+            scale_y_continuous(expand = expansion(mult = c(0, 0.15))) +
+            labs(
+              title = T_("GradeDistributionTitle", "Puan Kategorilerine Göre Öğrenci Dağılımı"),
+              x = T_("GradeCategory", "Puan Kategorisi"),
+              y = T_("StudentCount", "Öğrenci Sayısı")
+            ) +
+            theme_minimal(base_size = 11) +
+            theme(axis.text.x = element_text(angle = 0, hjust = 0.5))
+
+          temp_plot_file <- tempfile(fileext = ".png")
+          ggsave(temp_plot_file, plot = p, width = 8, height = 5, dpi = 150)
+
+          doc <- body_add_par(doc, "")
+          doc <- body_add_img(doc, src = temp_plot_file, width = 8, height = 5)
+
+          unlink(temp_plot_file)
+        }
+
         print(doc, target = file)
 
       }, error = function(e) {
@@ -1490,6 +1705,33 @@ server <- function(input, output, session) {
         flextable::autofit() %>%
         flextable::fit_to_width(max_width = 9.5)
       doc <- body_add_flextable(doc, ft_items)
+      h <- item_highlights()
+      if (!is.null(h) && h$n_total > 0) {
+
+        doc <- body_add_par(doc, "")
+        doc <- body_add_par(doc, T_("DistractorHighlightsHeader", "Madde Özeti"), style = "heading 2")
+
+        create_report_line <- function(label_key, default_label, value, count, n_total) {
+          label <- T_(label_key, default_label)
+          if (is.na(value) || is.null(value)) {
+            value_str <- T_("NotApplicable", "N/A")
+            count_str <- ""
+          } else {
+            value_str <- value
+            pct_str <- sprintf("(%.1f%%)", (count / n_total) * 100)
+            count_str <- paste0(" (", count, " ", T_("CountUnit", "kişi"), ") ", pct_str)
+          }
+          paste0(label, ": ", value_str, count_str)
+        }
+
+        line1 <- create_report_line("MostCorrectItem", "En çok doğru yapılan madde", h$most_correct, h$correct_count, h$n_total)
+        line2 <- create_report_line("MostWrongItem", "En çok yanlış yapılan madde", h$most_wrong, h$wrong_count, h$n_total)
+        line3 <- create_report_line("MostBlankItem", "En çok boş bırakılan madde", h$most_blank, h$blank_count, h$n_total)
+
+        doc <- body_add_par(doc, line1, style = "Normal")
+        doc <- body_add_par(doc, line2, style = "Normal")
+        doc <- body_add_par(doc, line3, style = "Normal")
+      }
       print(doc, target = file)
     },
     contentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -1533,7 +1775,7 @@ server <- function(input, output, session) {
   output$dl_rapor_ozet <- downloadHandler(
     filename = function() { paste0("test_ozeti_", Sys.Date(), ".docx") },
     content = function(file) {
-      dict()  # i18n
+      dict()
       s <- test_summary(); req(s)
 
       row_labels <- c(

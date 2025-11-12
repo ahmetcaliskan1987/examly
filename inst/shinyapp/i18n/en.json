@@ -182,5 +182,24 @@
   "Value": "Value",
   "NeedItemTypesKeys": "Please specify item types and provide answer keys.",
   "StudentWord": "Student",
-  "FileReadError": "File could not be read. Please check CSV format and delimiter/encoding settings."
+  "FileReadError": "File could not be read. Please check CSV format and delimiter/encoding settings.",
+
+  "StudentSummaryHeader": "Score Distribution Summary",
+  "StudentsPassed50": "Number of students scoring 50 or higher",
+  "TotalStudents": "Total",
+  "GradeDistributionTitle": "Student Distribution by Grade Category",
+  "GradeCategory": "Grade Category",
+  "StudentCount": "Student Count",
+  "Grade.Fail": "0-49.99 (Fail)",
+  "Grade.Pass": "50-59.99 (Pass)",
+  "Grade.Medium": "60-69.99 (Medium)",
+  "Grade.Good": "70-84.99 (Good)",
+  "Grade.Excellent": "85-100 (Excellent)",
+  "DistractorHighlightsHeader": "Item Summary",
+  "MostCorrectItem": "Most correctly answered item",
+  "MostWrongItem": "Most incorrectly answered item",
+  "MostBlankItem": "Most left blank item",
+  "CountUnit": "count",
+  "NotApplicable": "N/A",
+  "WaitingForScores": "Calculating scores..."
 }
