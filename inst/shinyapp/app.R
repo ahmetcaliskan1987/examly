@@ -270,7 +270,7 @@ server <- function(input, output, session) {
   output$what_it_means_items<- renderText({ T_("WhatItMeans", "Ne anlama geliyor?") })
   output$tab_distractor         <- renderText( T_("Distractor", "Çeldirici Analizi") )
   output$distractor_comment_hdr <- renderText( T_("DistractorCommentHeader", "Yorum") )
-  output$distractor_highlights_header <- renderText( T_("DistractorHighlightsHeader", "Madde Özeti") )
+  output$distractor_highlights_header <- renderText({ dict(); T_("DistractorHighlightsHeader", "Madde Özeti") })
   output$distractor_table_hdr   <- renderText( T_("DistractorTableHeader", "Seçenek Dağılımları") )
   output$tab_student_results <- renderText( T_("StudentResults", "Öğrenci Sonuçları") )
 
@@ -930,6 +930,7 @@ server <- function(input, output, session) {
   })
 
   student_scores_processed <- reactive({
+    dict()
     s <- test_summary()
     validate(need(!is.null(s) && !is.null(s$weighted_total) && !is.null(s$max_weighted) && s$max_weighted > 0,
                   T_("WaitingForScores", "Puanlar hesaplanıyor veya maksimum puan 0...")))
@@ -938,7 +939,6 @@ server <- function(input, output, session) {
 
     count_pass_50 <- sum(percent_scores >= 50, na.rm = TRUE)
 
-    dict()
     score_labels_i18n <- c(
       T_("Grade.Fail", "0-49.99 Geçmez"),
       T_("Grade.Pass", "50-59.99 Geçer"),
@@ -962,6 +962,8 @@ server <- function(input, output, session) {
   })
 
   item_highlights <- reactive({
+    input$lang
+    dict()
     s <- test_summary()
     validate(need(!is.null(s) && !is.null(s$sc_bin), T_("WaitingForScores", "Puanlar hesaplanıyor...")))
 
@@ -1078,6 +1080,7 @@ server <- function(input, output, session) {
   })
 
   output$overall_comment <- renderUI({
+    dict()
     s <- test_summary()
 
     keyP <- if (is.na(s$avg_p)) NULL else if (s$avg_p < .4) "Overall_ptxt_low"
@@ -1085,8 +1088,8 @@ server <- function(input, output, session) {
     keyR <- if (is.na(s$avg_r)) NULL else if (s$avg_r < .2) "Overall_rtxt_low"
     else if (s$avg_r > .4) "Overall_rtxt_high" else "Overall_rtxt_mid"
 
-    ptxt <- T_(keyP, "")
-    rtxt <- T_(keyR, "")
+    ptxt <- if (is.null(keyP)) "" else T_(keyP, "")
+    rtxt <- if (is.null(keyR)) "" else T_(keyR, "")
 
     htmltools::HTML(paste(ptxt, rtxt, sep = "<br/>"))
   })
@@ -1207,9 +1210,9 @@ server <- function(input, output, session) {
   })
 
   output$distractor_highlights_ui <- renderUI({
+    dict()
     h <- item_highlights()
     req(h)
-    dict()
 
     style_box <- "padding: 10px; border: 1px solid #ddd; border-radius: 5px; background: #f9f9f9; margin-bottom: 8px;"
     style_label <- "font-weight: bold; color: #333;"
@@ -1374,6 +1377,7 @@ server <- function(input, output, session) {
   })
 
   output$student_summary_text_ui <- renderUI({
+    input$lang
     s_proc <- student_scores_processed()
     req(s_proc)
     dict()
@@ -1594,8 +1598,13 @@ server <- function(input, output, session) {
         s_proc <- student_scores_processed()
         if (!is.null(s_proc)) {
           pass_text <- T_("StudentsPassed50", "Ağırlıklı puana göre 50 ve üzeri alan öğrenci sayısı")
+          pct_str <- ""
+          if (s_proc$n_total > 0) {
+            pct_pass <- (s_proc$count_pass_50 / s_proc$n_total) * 100
+            pct_str <- sprintf(" (%%%.1f)", pct_pass)
+          }
           summary_p_text <- paste0(
-            pass_text, ": ", s_proc$count_pass_50,
+            pass_text, ": ", s_proc$count_pass_50, pct_str,
             " (", T_("TotalStudents", "Toplam"), ": ", s_proc$n_total, ")"
           )
 
