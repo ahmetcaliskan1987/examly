@@ -1,40 +1,28 @@
-## Resubmission
+## Resubmission: examly 0.1.2
 
-Dear CRAN Team (attn: Konstanze Lauseker),
+This is a resubmission for `examly` version 0.1.2.
 
-Thank you very much for your detailed and constructive feedback. We have carefully addressed all the issues mentioned in your previous message.
+### Reason for Update
 
-Below is a summary of the changes made in response to each point:
+The previous version on CRAN (v0.1.1) contained a critical bug. This bug prevented several key analysis outputs from being rendered or displayed correctly in the Shiny interface.
 
-**1. Single Quotes for Package Names**
+This update (v0.1.2) specifically fixes this bug. The key features that were previously blocked (and are now working correctly) include:
+* Summary tables for the most correct, incorrect, and skipped questions.
+* The count of students scoring 50 or above.
+* The bar chart visualising student counts within specific score ranges.
 
-We have updated the DESCRIPTION file as requested. All package names in the Title and Description fields (e.g., 'shiny') are now properly enclosed in single quotes.
+This update is essential for the package to function as intended.
 
-**2. References for Methods**
+### R CMD check results
 
-The package implements widely established statistical methods (e.g., Cronbach’s Alpha, item-total correlation). As these are standard textbook methods, we did not include external references, but we ensured that the method descriptions are now clear and complete in the DESCRIPTION file.
+I have checked the package locally using `devtools::check()` (0 errors, 0 warnings, 1 note) and on win-builder (`R-devel`) using `devtools::check_win_devel()` (0 errors, 0 warnings, 1 note).
 
-**3. Usage of `\dontrun{}`, `\donttest{}`, and `if(interactive())`**
+The NOTE on my local check was:
+* `unable to verify current time`
+    (This is a known benign note on my local build platform.)
 
-We have revised the examples in the documentation accordingly. The example for the main function, which launches a Shiny app, now uses `if(interactive()) {}` instead of `\dontrun{}`. This allows manual testing without interfering with automated CRAN checks.
+The NOTE on the win-builder check was:
+* `checking CRAN incoming feasibility ... Days since last update: 1`
+    (I understand this is an informational note for the reviewer, as this is a rapid resubmission to fix the critical bug.)
 
-**4. Tests for Non-Exported Functions (Shiny Interfaces)**
-
-This was the main focus of our revision.  
-We refactored the package so that all core logic (data parsing, scoring, and statistical calculations) resides in internal helper functions within the R/ directory.  
-A comprehensive **testthat** suite has been added, including **58 unit tests** covering this internal logic.  
-All tests pass successfully, ensuring that the package’s computational components can now be automatically checked as requested.
-
-**R CMD check results**
-
-We have run `devtools::check()` locally with the following result:
-0 errors | 0 warnings | 0 notes
-
-
-All checks passed cleanly.
-
-Thank you again for your time and helpful guidance.  
-We believe the package now fully meets CRAN submission requirements.
-
-Best regards,  
-**Ahmet Çalışkan and Abdullah Faruk Kılıç**
+Thank you for your time.
