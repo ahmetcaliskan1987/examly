@@ -73,6 +73,7 @@ ui <- navbarPage(
         .banner {margin:10px 0; padding:10px 14px; background:#eef6ff; border-left:4px solid #1d4ed8; border-radius:8px; font-size:16px;}
         .details-summary-note {font-size: 12px; font-weight: 400; color: #6b7280;}
         details.toggle-card > summary { display: flex; align-items: center; gap: 8px;}
+        .select-all-link { font-size: 11px; text-decoration: underline; cursor: pointer; color: #337ab7; font-weight: normal;}
       "))),
              div(class="center-title", textOutput("title_display_center")),
              br(),
@@ -117,7 +118,10 @@ ui <- navbarPage(
                )
              ),
              hr(),
-             h4(textOutput("weights_header")),
+             div(style="display:flex; justify-content:space-between; align-items:flex-end;",
+                 h4(textOutput("weights_header")),
+                 uiOutput("ui_distribute_weights_btn")
+             ),
              div(class="compact-wrap section-gap", uiOutput("item_weight_table")),
              br()
            )
@@ -265,7 +269,7 @@ server <- function(input, output, session) {
   output$visual_cues          <- renderText(T_("VisualCues", "Görsel Göstergeler"))
   output$what_it_means        <- renderText(T_("WhatItMeans", "Ne anlama geliyor?"))
   output$tab_itemstats      <- renderText({ T_("ItemStats", "Madde İstatistikleri") })
-  output$what_it_means_items<- renderText({ T_("WhatItMeans", "Ne anlama geliyor?") })
+  output$what_it_means_items<- renderText({ T_("WhatItMeans", "Yorum ve Aralıklar") })
   output$tab_distractor         <- renderText( T_("Distractor", "Çeldirici Analizi") )
   output$distractor_comment_hdr <- renderText( T_("DistractorCommentHeader", "Yorum") )
   output$distractor_highlights_header <- renderText({ dict(); T_("DistractorHighlightsHeader", "Madde Özeti") })
@@ -396,14 +400,11 @@ server <- function(input, output, session) {
 
   observeEvent(input$about_footer, {
     dict()
-
     pkg_name <- "examly"
     pkg_ver  <- tryCatch(
       as.character(utils::packageDescription(pkg_name, fields = "Version")),
-      error = function(e) "1.1.0"
+      error = function(e) "1.1.1"
     )
-    repo_url <- getOption("examly.repo_url", "https://github.com/ahmetcaliskan1987/examly")
-
     showModal(modalDialog(
       title     = T_("AppTitle", "examly: Statistical Metrics and Reporting Tool"),
       easyClose = TRUE,
@@ -418,14 +419,11 @@ server <- function(input, output, session) {
           'Abdullah Faruk Kılıç - Trakya Üniversitesi - {T_("Contact","İletişim")}: <a href="mailto:afarukkilic@trakya.edu.tr">afarukkilic@trakya.edu.tr</a>'
         )))
       ),
-
       tags$h4(T_("PkgMeta", "Paket Künyesi")),
       tags$ul(
         tags$li(HTML(glue::glue('{T_("Version","Versiyon")}: {pkg_ver}'))),
-        tags$li(HTML(glue::glue('{T_("Github","GitHub")}: <a href="https://github.com/ahmetcaliskan1987/examly" target="_blank">https://github.com/ahmetcaliskan1987/examly</a>'))),
-        tags$li(HTML(glue::glue('{T_("Contact","İletişim")}: <a href="mailto:ahmetcaliskan1987@gmail.com">ahmetcaliskan1987@gmail.com</a>')))
+        tags$li(HTML(glue::glue('{T_("Github","GitHub")}: <a href="https://github.com/ahmetcaliskan1987/examly" target="_blank">https://github.com/ahmetcaliskan1987/examly</a>')))
       ),
-
       tags$p(
         em(HTML(glue::glue('© {format(Sys.Date(), "%Y")} {T_("AllRights","Tüm hakları saklıdır.")}')))
       )
@@ -560,37 +558,74 @@ server <- function(input, output, session) {
   lc_items_use  <- reactive({ examly::`%||%`(input$lc_items,  character(0)) })
   bin_items_use <- reactive({ examly::`%||%`(input$bin_items, character(0)) })
 
+  # --- SELECT ALL BUTTONS (RENDERED IN SERVER) ---
+  create_header_with_link <- function(label_text, link_id, link_text) {
+    tags$div(
+      style = "font-weight: 700; margin-bottom: 5px;",
+      label_text,
+      tags$span(style = "font-weight: normal; font-size: 11px; margin-left: 5px;",
+                "(", actionLink(link_id, link_text, class = "select-all-link"), ")")
+    )
+  }
+
   output$mc_item_selector <- renderUI({
-    req(input$item_cols)
+    req(input$item_cols); dict()
     sel_now <- isolate(input$mc_items)
-    checkboxGroupInput("mc_items",
-                       label = T_("MCItems","Çoktan Seçmeli Maddeler"),
-                       choices=input$item_cols, selected=sel_now %||% mc_items_use())
+    tagList(
+      create_header_with_link(T_("MCItems","Çoktan Seçmeli Maddeler"), "sel_all_mc", T_("SelectAll", "Tümünü Seç")),
+      checkboxGroupInput("mc_items", label = NULL,
+                         choices=input$item_cols, selected=sel_now %||% mc_items_use())
+    )
   })
 
   output$tf_item_selector <- renderUI({
-    req(input$item_cols)
+    req(input$item_cols); dict()
     sel_now <- isolate(input$tf_items)
-    checkboxGroupInput("tf_items",
-                       label = T_("TFItems","Doğru/Yanlış Maddeler"),
-                       choices=input$item_cols, selected=sel_now %||% tf_items_use())
+    tagList(
+      create_header_with_link(T_("TFItems","Doğru/Yanlış Maddeler"), "sel_all_tf", T_("SelectAll", "Tümünü Seç")),
+      checkboxGroupInput("tf_items", label = NULL,
+                         choices=input$item_cols, selected=sel_now %||% tf_items_use())
+    )
   })
 
   output$bin_item_selector <- renderUI({
-    req(input$item_cols)
+    req(input$item_cols); dict()
     sel_now <- isolate(input$bin_items)
-    checkboxGroupInput("bin_items",
-                       label = T_("BINItems","1-0 Kodlu Maddeler"),
-                       choices=input$item_cols, selected=sel_now %||% bin_items_use())
+    tagList(
+      create_header_with_link(T_("BINItems","1-0 Kodlu Maddeler"), "sel_all_bin", T_("SelectAll", "Tümünü Seç")),
+      checkboxGroupInput("bin_items", label = NULL,
+                         choices=input$item_cols, selected=sel_now %||% bin_items_use())
+    )
   })
 
   output$lc_item_selector <- renderUI({
-    req(input$item_cols)
+    req(input$item_cols); dict()
     sel_now <- isolate(input$lc_items)
-    checkboxGroupInput("lc_items",
-                       label = T_("LCItems","Uzun Cevaplı Maddeler"),
-                       choices=input$item_cols, selected=sel_now %||% lc_items_use())
+    tagList(
+      create_header_with_link(T_("LCItems","Uzun Cevaplı Maddeler"), "sel_all_lc", T_("SelectAll", "Tümünü Seç")),
+      checkboxGroupInput("lc_items", label = NULL,
+                         choices=input$item_cols, selected=sel_now %||% lc_items_use())
+    )
   })
+
+  # --- OBSERVERS FOR SELECT ALL ---
+  observeEvent(input$sel_all_mc, {
+    req(input$item_cols)
+    updateCheckboxGroupInput(session, "mc_items", choices = input$item_cols, selected = input$item_cols)
+  })
+  observeEvent(input$sel_all_tf, {
+    req(input$item_cols)
+    updateCheckboxGroupInput(session, "tf_items", choices = input$item_cols, selected = input$item_cols)
+  })
+  observeEvent(input$sel_all_bin, {
+    req(input$item_cols)
+    updateCheckboxGroupInput(session, "bin_items", choices = input$item_cols, selected = input$item_cols)
+  })
+  observeEvent(input$sel_all_lc, {
+    req(input$item_cols)
+    updateCheckboxGroupInput(session, "lc_items", choices = input$item_cols, selected = input$item_cols)
+  })
+  # ----------------------------------------
 
   mc_levels <- reactive({
     ch <- as.integer(input$mc_choice_count)[1]; if(is.na(ch)) ch <- 5
@@ -603,7 +638,6 @@ server <- function(input, output, session) {
     if(length(hdrs)==0){
       return(tags$div(class="muted", T_("ThisSectionEmpty","(Bu bölümde madde yok)")))
     }
-
     n_txt <- as.character(length(hdrs))
     help1 <- gsub("__N__", n_txt, T_("MCKeyPasteHelp1",
                                      "Aşağıdaki __N__ adet Çoktan Seçmeli madde için cevapları SIRA GÖZETEREK yapıştırın."))
@@ -627,12 +661,10 @@ server <- function(input, output, session) {
     if(length(hdrs)==0){
       return(tags$div(class="muted", T_("ThisSectionNoTF","(DY olarak işaretlenen madde yok)")))
     }
-
     n_txt <- as.character(length(hdrs))
     help1 <- gsub("__N__", n_txt, T_("TFKeyPasteHelp1",
                                      "Aşağıdaki __N__ adet D/Y madde için cevapları SIRA GÖZETEREK yapıştırın."))
     help2 <- T_("MCKeyPasteHelp2","Giriş Sırası:")
-
     tagList(
       helpText(help1),
       helpText(strong(paste(help2, paste(hdrs, collapse=", ")))),
@@ -643,6 +675,26 @@ server <- function(input, output, session) {
         placeholder = T_("TFKeyPlaceholder","Örn: D,Y,D,D...")
       )
     )
+  })
+
+  output$ui_distribute_weights_btn <- renderUI({
+    dict()
+    actionButton("distribute_weights_btn",
+                 T_("DistributeWeights", "Puanları 100 Üzerinden Eşit Dağıt"),
+                 icon = icon("balance-scale"),
+                 style = "font-size:12px; padding:4px 8px; margin-bottom:10px;")
+  })
+
+  observeEvent(input$distribute_weights_btn, {
+    req(examly::norm_cols(input$item_cols))
+    cols <- examly::norm_cols(input$item_cols)
+    n <- length(cols)
+    if(n > 0){
+      val <- 100 / n
+      for(nm in cols){
+        updateNumericInput(session, paste0("w_", nm), value = val)
+      }
+    }
   })
 
   output$item_weight_table <- renderUI({
@@ -706,25 +758,19 @@ server <- function(input, output, session) {
 
     mc <- setNames(rep(NA_character_, length(mc_names)), mc_names)
     if (length(mc_names) > 0 && isTruthy(input$mc_key_paste)) {
-
       raw_text_mc <- input$mc_key_paste
-
       has_delimiter_mc <- grepl("[,;\\n\\t\\s]", raw_text_mc, perl = TRUE)
-
       if (has_delimiter_mc) {
         keys_pasted <- unlist(strsplit(raw_text_mc, "[,;\\n\\t\\s]+"))
       } else {
         keys_pasted <- unlist(strsplit(raw_text_mc, ""))
       }
-
       keys_pasted <- trimws(keys_pasted)
       keys_pasted <- keys_pasted[keys_pasted != ""]
       keys_pasted <- toupper(keys_pasted)
-
       n_keys <- length(keys_pasted)
       n_items <- length(mc_names)
       n_match <- min(n_keys, n_items)
-
       if (n_match > 0) {
         valid_keys <- keys_pasted[1:n_match]
         valid_keys[!valid_keys %in% lv] <- NA_character_
@@ -734,32 +780,25 @@ server <- function(input, output, session) {
 
     tf <- setNames(rep(NA_character_, length(tf_names)), tf_names)
     if (length(tf_names) > 0 && isTruthy(input$tf_key_paste)) {
-
       raw_text_tf <- input$tf_key_paste
-
       has_delimiter_tf <- grepl("[,;\\n\\t\\s]", raw_text_tf, perl = TRUE)
-
       if (has_delimiter_tf) {
         keys_pasted_tf <- unlist(strsplit(raw_text_tf, "[,;\\n\\t\\s]+"))
       } else {
         keys_pasted_tf <- unlist(strsplit(raw_text_tf, ""))
       }
-
       keys_pasted_tf <- trimws(keys_pasted_tf)
       keys_pasted_tf <- keys_pasted_tf[keys_pasted_tf != ""]
       keys_pasted_tf <- toupper(keys_pasted_tf)
-
       n_keys_tf <- length(keys_pasted_tf)
       n_items_tf <- length(tf_names)
       n_match_tf <- min(n_keys_tf, n_items_tf)
-
       if (n_match_tf > 0) {
         valid_keys_tf <- keys_pasted_tf[1:n_match_tf]
         valid_keys_tf[!valid_keys_tf %in% c("D", "Y")] <- NA_character_
         tf[1:n_match_tf] <- valid_keys_tf
       }
     }
-
     list(mc = mc, tf = tf)
   })
 
@@ -827,15 +866,6 @@ server <- function(input, output, session) {
     )
   })
 
-  compute_item_exam <- reactive({
-    si <- scored_items(); if(is.null(si)) return(NULL)
-    only_dicho <- si$sc_bin
-    if(requireNamespace("psychometric", quietly=TRUE) && ncol(only_dicho) > 0){
-      out <- tryCatch(psychometric::item.exam(only_dicho, discrim = TRUE), error = function(e) NULL)
-      return(out)
-    }
-    NULL
-  })
   itemexam_quant_reactive <- reactive({ examly::get_itemexam_quant() })
 
   test_summary <- reactive({
@@ -891,19 +921,62 @@ server <- function(input, output, session) {
     })
     names(rjx) <- all_items
 
+    avg_p_psych <- NA_real_
+    avg_r_psych <- NA_real_
+    ul27_disc <- rep(NA_real_, length(all_items)); names(ul27_disc) <- all_items
+
+    if(n_stu >= 4){
+      k_ul <- ceiling(n_stu * 0.27)
+      ord <- order(weighted_total)
+      lower_idx <- ord[1:k_ul]
+      upper_idx <- ord[(n_stu-k_ul+1):n_stu]
+
+      for(nm in all_items){
+        mj <- w_use[[nm]]
+        col_vals <- Y[[nm]]
+        if(!is.na(mj) && mj > 0 && !all(is.na(col_vals))){
+          mean_upper <- mean(col_vals[upper_idx], na.rm=TRUE)
+          mean_lower <- mean(col_vals[lower_idx], na.rm=TRUE)
+          p_upper <- mean_upper / mj
+          p_lower <- mean_lower / mj
+          ul27_disc[[nm]] <- p_upper - p_lower
+        }
+      }
+    }
+
+    only_dicho_names <- intersect(colnames(sc_bin), union(mc_tf_bin_names, other_names))
+    if(requireNamespace("psychometric", quietly=TRUE) && length(only_dicho_names) > 0){
+      dicho_mat <- sc_bin[, only_dicho_names, drop=FALSE]
+      try({
+        res_psych <- psychometric::item.exam(dicho_mat, discrim = TRUE)
+        avg_p_psych <- mean(res_psych$Difficulty, na.rm=TRUE)
+        avg_r_psych <- mean(res_psych$Discrimination, na.rm=TRUE)
+      }, silent=TRUE)
+    }
+
+    if(is.na(avg_p_psych)) avg_p_psych <- mean(p_all, na.rm=TRUE)
+    if(is.na(avg_r_psych)) avg_r_psych <- mean(rjx, na.rm=TRUE)
+
+    avg_ul27 <- mean(ul27_disc, na.rm = TRUE)
+
     valid_cols <- which(colSums(!is.na(Y)) > 1)
     k_eff <- length(valid_cols)
     col_vars <- if(k_eff>0) sapply(valid_cols, function(j) stats::var(Y[[j]], na.rm = TRUE)) else numeric(0)
     var_total <- stats::var(weighted_total, na.rm = TRUE)
+
+    # Cronbach Alfa Hesabı
     alpha <- if (k_eff > 1 && !is.na(var_total) && var_total > 0) (k_eff/(k_eff - 1)) * (1 - sum(col_vars, na.rm = TRUE)/var_total) else NA_real_
 
-    only_dicho <- sc_bin[, intersect(colnames(sc_bin), union(mc_tf_bin_names, other_names)), drop = FALSE]
-    kr20_val <- if(length(lc_names)==0 && all(w_use[union(mc_tf_bin_names, other_names)]==1, na.rm=TRUE)) examly::kr20(only_dicho) else NA_real_
+    is_all_binary <- length(lc_names) == 0 &&
+      all(apply(sc_bin, 2, function(x) all(x %in% c(0,1,NA))), na.rm=TRUE)
 
-    q <- itemexam_quant_reactive(); k <- max(1, floor(n_stu * q))
-    ord <- order(weighted_total)
-    lower <- weighted_total[ord][1:k]
-    upper <- weighted_total[ord][(n_stu-k+1):n_stu]
+    # DÜZELTME: KR-20 hesabı
+    # Eğer veri binary ise KR-20 matematiksel olarak Alfa ile aynıdır.
+    # Manuel hesaplamadaki olası 'pq toplamı 0' hatasını önlemek için doğrudan Alfa değerini kullanıyoruz.
+    kr20_val <- NA_real_
+    if(is_all_binary && k_eff > 1){
+      kr20_val <- alpha
+    }
 
     list(
       n_stu = n_stu,
@@ -911,22 +984,24 @@ server <- function(input, output, session) {
       mode   = suppressWarnings(examly::d_mode(weighted_total)),
       mean   = mean(weighted_total, na.rm=TRUE),
       sd     = stats::sd(weighted_total, na.rm=TRUE),
-      avg_p  = mean(p_all[!is.na(p_all)], na.rm=TRUE),
-      avg_r  = mean(rjx[!is.na(rjx)], na.rm=TRUE),
+      avg_p  = mean(p_all, na.rm=TRUE),
+      avg_r  = mean(rjx, na.rm=TRUE),
+      avg_ul27 = avg_ul27,
+      avg_p_psych = avg_p_psych,
+      avg_r_psych = avg_r_psych,
       alpha  = alpha,
       kr20   = kr20_val,
-      lower_max = max(lower, na.rm=TRUE),
-      upper_min = min(upper, na.rm=TRUE),
+      is_all_binary = is_all_binary,
+      max_weighted = max_weighted,
 
       total_unweighted = rowSums(sc_bin, na.rm = TRUE),
-      p = p_all, rjx = rjx,
+      p = p_all, rjx = rjx, ul27 = ul27_disc,
       sc_bin = sc_bin,
       lc_raw = lc_raw,
       Y = Y,
       weighted_total = weighted_total,
       max_weighted = max_weighted,
-      weights = w_use,
-      k_group = k, q = q
+      weights = w_use
     )
   })
 
@@ -937,9 +1012,7 @@ server <- function(input, output, session) {
                   T_("WaitingForScores", "Puanlar hesaplanıyor veya maksimum puan 0...")))
 
     percent_scores <- (s$weighted_total / s$max_weighted) * 100
-
     count_pass_50 <- sum(percent_scores >= 50, na.rm = TRUE)
-
     score_labels_i18n <- c(
       T_("Grade.Fail", "0-49.99 Geçmez"),
       T_("Grade.Pass", "50-59.99 Geçer"),
@@ -947,13 +1020,9 @@ server <- function(input, output, session) {
       T_("Grade.Good", "70-84.99 İyi"),
       T_("Grade.Excellent", "85-100 Pekiyi")
     )
-
     score_breaks <- c(-Inf, 49.99, 59.99, 69.99, 84.99, 100)
-
     grades <- cut(percent_scores, breaks = score_breaks, labels = score_labels_i18n, right = TRUE)
-
     df_grades <- data.frame(Grades = grades)
-
     list(
       count_pass_50 = count_pass_50,
       n_total = length(percent_scores),
@@ -963,33 +1032,25 @@ server <- function(input, output, session) {
   })
 
   item_highlights <- reactive({
-    input$lang
-    dict()
+    input$lang; dict()
     s <- test_summary()
     validate(need(!is.null(s) && !is.null(s$sc_bin), T_("WaitingForScores", "Puanlar hesaplanıyor...")))
-
     sc_bin <- s$sc_bin
     n_total <- s$n_stu
-
     binary_items <- setdiff(colnames(sc_bin), lc_items_use())
-
     if (length(binary_items) == 0 || n_total == 0) {
       return(list(most_correct = NA_character_, correct_count = 0,
                   most_wrong = NA_character_,   wrong_count = 0,
                   most_blank = NA_character_,   blank_count = 0,
                   n_total = n_total))
     }
-
     sc_bin_binary_only <- sc_bin[, binary_items, drop = FALSE]
-
     n_correct <- colSums(sc_bin_binary_only == 1, na.rm = TRUE)
     n_wrong   <- colSums(sc_bin_binary_only == 0, na.rm = TRUE)
     n_blank   <- colSums(is.na(sc_bin_binary_only), na.rm = TRUE)
-
     item_most_correct <- if(all(is.na(n_correct)) || length(n_correct)==0 || all(n_correct == 0)) NA_character_ else names(n_correct)[which.max(n_correct)]
     item_most_wrong   <- if(all(is.na(n_wrong)) || length(n_wrong)==0 || all(n_wrong == 0)) NA_character_ else names(n_wrong)[which.max(n_wrong)]
     item_most_blank   <- if(all(is.na(n_blank)) || length(n_blank)==0 || all(n_blank == 0)) NA_character_ else names(n_blank)[which.max(n_blank)]
-
     list(
       most_correct = item_most_correct,
       correct_count = if(is.na(item_most_correct)) 0 else n_correct[item_most_correct],
@@ -1002,31 +1063,27 @@ server <- function(input, output, session) {
   })
 
   output$weighted_mean_text <- renderText({
-    paste0(T_("WeightedMean", "Sınav Ortalaması:"), " ", round(summary_stats$weighted_mean, 2))
+    s <- test_summary()
+    paste0(T_("WeightedMean", "Sınav Ortalaması:"), " ", round(mean(s$weighted_total, na.rm = TRUE), 3))
   })
 
-  output$overall_comment <- renderText({
-    if (mean_p < .3) {
-      ptxt <- T_("Overall_ptxt_low", "Ortalama güçlük düşük, başka bir deyişle soruların çoğu zor.")
-    } else if (mean_p < .7) {
-      ptxt <- T_("Overall_ptxt_mid", "Ortalama güçlük orta, başka bir deyişle sınavın zorluk seviyesi dengeli.")
-    } else {
-      ptxt <- T_("Overall_ptxt_high", "Ortalama güçlük yüksek, yani soruların çoğu kolay.")
-    }
-
-    if (mean_r < .2) {
-      rtxt <- T_("Overall_rtxt_low", "Ortalama ayırt edicilik düşük, sorular bilenle bilmeyeni ayırmakta zayıf olabilir.")
-    } else if (mean_r < .4) {
-      rtxt <- T_("Overall_rtxt_mid", "Ortalama ayırt edicilik orta düzeydedir.")
-    } else {
-      rtxt <- T_("Overall_rtxt_high", "Ortalama ayırt edicilik yüksektir, sorular bilenle bilmeyeni iyi ayırır.")
-    }
-
-    paste(ptxt, rtxt, sep = "\n")
+  output$overall_comment <- renderUI({
+    dict()
+    s <- test_summary()
+    keyP <- if (is.na(s$avg_p)) NULL else if (s$avg_p < .4) "Overall_ptxt_low"
+    else if (s$avg_p > .8) "Overall_ptxt_high" else "Overall_ptxt_mid"
+    keyR <- if (is.na(s$avg_r)) NULL else if (s$avg_r < .2) "Overall_rtxt_low"
+    else if (s$avg_r > .4) "Overall_rtxt_high" else "Overall_rtxt_mid"
+    ptxt <- if (is.null(keyP)) "" else T_(keyP, "")
+    rtxt <- if (is.null(keyR)) "" else T_(keyR, "")
+    htmltools::HTML(paste(ptxt, rtxt, sep = "<br/>"))
   })
 
   output$test_summary_table <- renderTable({
     s <- test_summary()
+
+    rel_val <- if(s$is_all_binary && !is.na(s$kr20)) s$kr20 else s$alpha
+    rel_lbl <- if(s$is_all_binary && !is.na(s$kr20)) T_("KR20", "KR-20") else T_("CronbachAlpha", "Cronbach Alfa")
 
     tbl <- tibble::tibble(
       StudentsCount      = s$n_stu,
@@ -1036,14 +1093,13 @@ server <- function(input, output, session) {
       SD                 = round(s$sd, 3),
       AvgDifficulty      = round(s$avg_p, 3),
       AvgDiscrimination  = round(s$avg_r, 3),
-      CronbachAlpha      = round(s$alpha, 3),
-      KR20               = round(s$kr20, 3),
-      LowerMax           = round(s$lower_max, 3),
-      UpperMin           = round(s$upper_min, 3),
+      AvgDiscriminationUL27 = round(s$avg_ul27, 3),
+      Reliability        = round(rel_val, 3),
       MaxWeighted        = round(s$max_weighted, 3),
       WeightedExamMean   = round(mean(s$weighted_total, na.rm = TRUE), 3)
     )
 
+    # DİKKAT: Burada HTML <br/> etiketi kullanıyoruz
     labels <- c(
       StudentsCount     = T_("StudentsCount",    "Öğrenci Sayısı"),
       Median            = T_("Median",           "Medyan"),
@@ -1051,18 +1107,24 @@ server <- function(input, output, session) {
       Mean              = T_("Mean",             "Aritmetik Ortalama"),
       SD                = T_("SD",               "Standart Sapma"),
       AvgDifficulty     = T_("AvgDifficulty",    "Ortalama Güçlük (p)"),
-      AvgDiscrimination = T_("AvgDiscrimination","Ortalama Ayırt Edicilik (rjx)"),
-      CronbachAlpha     = T_("CronbachAlpha",    "Cronbach Alfa"),
-      KR20              = T_("KR20",             "KR-20"),
-      LowerMax          = T_("LowerMax",         "Alt Grup Maks. Puan"),
-      UpperMin          = T_("UpperMin",         "Üst Grup Min. Puan"),
+
+      # DEĞİŞİKLİK 1: Satır atlamak için <br/> ekledik
+      AvgDiscrimination = "Ortalama Madde Ayırt Ediciliği<br/>(Korelasyon Bazlı)",
+
+      # DEĞİŞİKLİK 2: Satır atlamak için <br/> ekledik
+      AvgDiscriminationUL27 = "Ortalama Madde Ayırt Ediciliği<br/>(%27'lik Alt-Üst Gruba Göre)",
+
+      Reliability       = rel_lbl,
       MaxWeighted       = T_("MaxWeighted",      "Alınabilecek Maksimum Puan"),
       WeightedExamMean  = T_("WeightedExamMean", "Sınav Ortalaması (katsayılı)")
     )
 
+    # İsimleri eşleştir (Eğer JSON'dan geliyorsa JSON içindeki metinlere de <br/> eklemelisiniz!)
+    # Şimdilik doğrudan atama yapıyoruz ki kesin çalışsın.
     names(tbl) <- unname(labels[names(tbl)])
     tbl
-  }, align = "c")
+
+  }, align = "c", sanitize.text.function = function(x) x) # DEĞİŞİKLİK 3: HTML'i işlemek için bu parametre şart!
 
   output$avg_p_badge <- renderUI({
     s <- test_summary()
@@ -1074,40 +1136,12 @@ server <- function(input, output, session) {
     HTML(paste(T_("AvgR","Ortalama Ayırt Edicilik:"), as.character(examly::color_badge(s$avg_r, "r"))))
   })
 
-  output$weighted_mean_text <- renderText({
-    s <- test_summary()
-    paste0(T_("WeightedMean", "Sınav Ortalaması:"), " ",
-           round(mean(s$weighted_total, na.rm = TRUE), 3))
-  })
-
-  output$overall_comment <- renderUI({
-    dict()
-    s <- test_summary()
-
-    keyP <- if (is.na(s$avg_p)) NULL else if (s$avg_p < .4) "Overall_ptxt_low"
-    else if (s$avg_p > .8) "Overall_ptxt_high" else "Overall_ptxt_mid"
-    keyR <- if (is.na(s$avg_r)) NULL else if (s$avg_r < .2) "Overall_rtxt_low"
-    else if (s$avg_r > .4) "Overall_rtxt_high" else "Overall_rtxt_mid"
-
-    ptxt <- if (is.null(keyP)) "" else T_(keyP, "")
-    rtxt <- if (is.null(keyR)) "" else T_(keyR, "")
-
-    htmltools::HTML(paste(ptxt, rtxt, sep = "<br/>"))
-  })
-
   output$item_stats_table <- renderTable({
     dict()
-
     s <- test_summary()
     Y <- s$Y; p <- s$p
-
     item_sd  <- apply(Y, 2, stats::sd, na.rm = TRUE)
     item_var <- item_sd^2
-
-    reliab <- sapply(seq_len(ncol(Y)), function(j){
-      tryCatch(stats::cor(Y[[j]], s$weighted_total, use = "pairwise.complete.obs"),
-               error = function(e) NA_real_)
-    })
 
     diff_keys <- vapply(p,     examly::difficulty_label_key,      NA_character_)
     disc_keys <- vapply(s$rjx, examly::discrimination_decision_key, NA_character_)
@@ -1117,55 +1151,89 @@ server <- function(input, output, session) {
     disc_labels <- ifelse(is.na(disc_keys), "",
                           vapply(disc_keys, function(k) T_(k, ""), character(1)))
 
-
     tbl <- tibble::tibble(
       ItemName   = names(Y),
       Difficulty = round(p, 3),
       Discrimination = round(s$rjx, 3),
+      UL27Disc   = round(s$ul27, 3),
       SD        = round(item_sd, 3),
       Variance  = round(item_var, 3),
-      ItemReliabilityIndex = round(reliab, 3),
       DifficultyLabel = diff_labels,
       DiscriminationDecision = disc_labels
     )
 
     colnames(tbl) <- c(
       T_("ItemCol",                 "Soru"),
-      T_("DifficultyCol",          "Güçlük"),
-      T_("DiscriminationCol",      "Ayırt Edicilik"),
+      T_("DifficultyCol",          "Güçlük (p)"),
+      T_("DiscriminationCol",      "Ayırt Edicilik (rjx)"),
+      T_("UL27Col",                "Ayırt Edicilik (Alt-Üst %27)"),
       T_("SD",                     "S.D."),
       T_("VarianceCol",            "Varyans"),
-      T_("ItemRelIndexCol",        "Madde Güvenirlik İndeksi"),
       T_("DifficultyLabelCol",     "Zorluk"),
       T_("DiscDecisionCol",        "Madde Ayırt Edicilik Yorumu")
     )
-
     tbl
   }, align = "c")
 
+  # --- DYNAMIC ITEM COMMENTS UI (FOR I18N) ---
   output$item_comment_ui <- renderUI({
     dict()
-    l1 <- T_("ItemComment_Line1",
-             "As difficulty approaches 1.00, the item is easier; as it approaches 0.00, it is harder.")
-    l2 <- T_("ItemComment_Line2",
-             "The discrimination coefficient reflects the item's correlation with the weighted total (corrected item-total).")
-    l3 <- T_("ItemComment_Line3",
-             "The Item Reliability Index is the item's correlation with the weighted total; higher values indicate positive contribution.")
+    t_disc_title <- T_("Interp.Discrimination", "Ayırt Edicilik (Ebel, 1965)")
+    t_diff_title <- T_("Interp.Difficulty", "Güçlük")
+    t_val        <- T_("Interp.Value", "Değer")
+    t_comment    <- T_("Interp.Comment", "Yorum")
 
-    htmltools::HTML(paste(l1, l2, l3, sep = "<br/>"))
+    t_vg  <- T_("Interp.VeryGoodItem", "Çok iyi madde")
+    t_g   <- T_("Interp.GoodItem", "İyi madde (düzeltilebilir)")
+    t_med <- T_("Interp.MediocreItem", "Orta (düzeltilmeli)")
+    t_weak<- T_("Interp.WeakItem", "Zayıf (çıkarılmalı)")
+
+    t_ve  <- T_("Interp.VeryEasy", "Çok Kolay")
+    t_e   <- T_("Interp.Easy", "Kolay")
+    t_m   <- T_("Interp.Medium", "Orta")
+    t_h   <- T_("Interp.Hard", "Zor")
+    t_vh  <- T_("Interp.VeryHard", "Çok Zor")
+
+    t_note <- T_("Interp.Note", "Tabloda renklendirmeler kolay yorumlanabilirlik açısından 3 gruba (Düşük/Orta/Yüksek) indirgenmiştir.")
+
+    htmltools::HTML(paste0(
+      "<div style='display:flex; gap:20px; flex-wrap:wrap;'>",
+      "<div><b>", t_disc_title, ":</b><br>",
+      "<table class='table table-condensed table-bordered' style='font-size:12px; width:auto;'>",
+      "<tr><th>", t_val, "</th><th>", t_comment, "</th></tr>",
+      "<tr><td>> 0.40</td><td>", t_vg, "</td></tr>",
+      "<tr><td>0.30 - 0.39</td><td>", t_g, "</td></tr>",
+      "<tr><td>0.20 - 0.29</td><td>", t_med, "</td></tr>",
+      "<tr><td>< 0.19</td><td>", t_weak, "</td></tr>",
+      "</table></div>",
+
+      "<div><b>", t_diff_title, ":</b><br>",
+      "<table class='table table-condensed table-bordered' style='font-size:12px; width:auto;'>",
+      "<tr><th>", t_val, "</th><th>", t_comment, "</th></tr>",
+      "<tr><td>> 0.80</td><td>", t_ve, "</td></tr>",
+      "<tr><td>0.60 - 0.80</td><td>", t_e, "</td></tr>",
+      "<tr><td>0.40 - 0.60</td><td>", t_m, "</td></tr>",
+      "<tr><td>0.20 - 0.40</td><td>", t_h, "</td></tr>",
+      "<tr><td>< 0.20</td><td>", t_vh, "</td></tr>",
+      "</table></div>",
+      "</div>",
+      "<p style='margin-top:10px; font-style:italic; color:#666;'>* ", t_note, "</p>"
+    ))
   })
+  # --------------------------------------------
 
   mc_raw_norm <- reactive({
     req(mc_items_use()); df <- data_items(); cols <- intersect(names(df), mc_items_use())
     if(length(cols)==0) return(NULL)
     as.data.frame(lapply(cols, function(nm) examly::norm_letter(df[[nm]])), stringsAsFactors=FALSE) %>% setNames(cols)
   })
+
   compute_distractor <- function(item_name){
     s <- test_summary(); totals <- s$weighted_total
     mlv <- mc_levels(); df_mc <- mc_raw_norm(); keys <- answer_keys()$mc
     if(is.null(df_mc) || !(item_name %in% names(df_mc))) return(NULL)
     x <- df_mc[[item_name]]; key <- toupper(str_trim(keys[[item_name]]))
-    n <- length(totals); q <- s$q; k <- max(1, floor(n * q)); ord <- order(totals)
+    n <- length(totals); k <- max(1, floor(n * 0.27)); ord <- order(totals)
     lower_idx <- ord[1:k]; upper_idx <- ord[(n-k+1):n]
 
     tab_all <- table(factor(x, levels = mlv));     n_all <- as.integer(tab_all)
@@ -1181,7 +1249,6 @@ server <- function(input, output, session) {
     dict()
     type_correct    <- T_("DistractorType.Correct", "Doğru")
     type_distractor <- T_("DistractorType.Distractor", "Çeldirici")
-
     col_option   <- T_("DistractorCol.Option",          "Seçenek")
     col_type     <- T_("DistractorCol.Type",            "Tür")
     col_cnt_all  <- T_("DistractorCol.CountAll",        "İşaretleyenlerin Sayısı")
@@ -1214,13 +1281,11 @@ server <- function(input, output, session) {
     dict()
     h <- item_highlights()
     req(h)
-
     style_box <- "padding: 10px; border: 1px solid #ddd; border-radius: 5px; background: #f9f9f9; margin-bottom: 8px;"
     style_label <- "font-weight: bold; color: #333;"
     style_value_g <- "font-weight: bold; color: #28a745;"
     style_value_r <- "font-weight: bold; color: #dc3545;"
     style_value_b <- "font-weight: bold; color: #6c757d;"
-
     create_highlight_box <- function(label_key, default_label, value, count, n_total, style_val) {
       if (is.na(value) || is.null(value)) {
         value_str <- T_("NotApplicable", "N/A")
@@ -1230,7 +1295,6 @@ server <- function(input, output, session) {
         pct_str <- if (n_total > 0) sprintf("(%.1f%%)", (count / n_total) * 100) else ""
         count_str <- paste0(" (", count, " ", T_("CountUnit", "kişi"), ") ", pct_str)
       }
-
       tags$div(
         style = style_box,
         tags$span(style = style_label, T_(label_key, default_label), ": "),
@@ -1238,7 +1302,6 @@ server <- function(input, output, session) {
         tags$span(style="color: #555;", count_str)
       )
     }
-
     tagList(
       create_highlight_box("MostCorrectItem", "En çok doğru yapılan madde", h$most_correct, h$correct_count, h$n_total, style_value_g),
       create_highlight_box("MostWrongItem", "En çok yanlış yapılan madde", h$most_wrong, h$wrong_count, h$n_total, style_value_r),
@@ -1252,19 +1315,14 @@ server <- function(input, output, session) {
     if (is.null(tb))
       return( T_("DistractorNeedsMCAndKey",
                  "Bu analiz için madde çoktan seçmeli olmalı ve cevap anahtarı girilmiş olmalıdır.") )
-
     type_correct    <- T_("DistractorType.Correct", "Doğru")
     type_distractor <- T_("DistractorType.Distractor", "Çeldirici")
-
     col_type   <- T_("DistractorCol.Type", "Tür")
     col_disc   <- T_("DistractorCol.Discrimination", "Seçeneğin Ayırt Ediciliği")
     col_option <- T_("DistractorCol.Option", "Seçenek")
-
     key_row <- tb %>% dplyr::filter(.data[[col_type]] == type_correct)
     ok <- nrow(key_row) > 0 && !is.na(key_row[[col_disc]][1]) && key_row[[col_disc]][1] > 0
-
     bads <- tb %>% dplyr::filter(.data[[col_type]] == type_distractor, .data[[col_disc]] > 0)
-
     msg1 <- if (ok) T_("DistractorMsg_OK",
                        "Doğru seçenek başarılı öğrenciler tarafından daha çok işaretlenmiş.")
     else     T_("DistractorMsg_NotOK",
@@ -1277,7 +1335,6 @@ server <- function(input, output, session) {
              T_("DistractorMsg_BadDistractorsPrefix",
                 "Başarılı öğrencilerde görece daha çok seçilen çeldiriciler: "),
              paste0(bads[[col_option]], collapse = ", "), ".")
-
     paste(msg1, msg2)
   })
 
@@ -1288,11 +1345,9 @@ server <- function(input, output, session) {
     scn[is.na(scn)] <- NA_real_
     zero_mctf <- names(scn)[names(scn) %in% union(mc_names, tf_names) & !is.na(scn) & scn == 0]
     zero_bin  <- names(scn)[names(scn) %in% bin_names                 & !is.na(scn) & scn == 0]
-
     lcn <- suppressWarnings(as.numeric(lc_row)); names(lcn) <- names(lc_row)
     w0  <- suppressWarnings(as.numeric(w[names(lc_row)]));   names(w0)  <- names(lc_row)
     low_lc <- names(lcn)[names(lcn) %in% lc_names & !is.na(lcn) & !is.na(w0) & (lcn < 0.5 * w0)]
-
     if(length(zero_mctf) == 0 && length(zero_bin) == 0 && length(low_lc) == 0) return("")
     maddeler <- paste0(sort(unique(c(zero_mctf, zero_bin, low_lc))), collapse = ", ")
     paste0(" ", maddeler, ".")
@@ -1304,14 +1359,10 @@ server <- function(input, output, session) {
     if (is.null(s)) return(tags$p( T_("SummaryNotReady",
                                       "Özet hesaplanamadı. Lütfen veri ve anahtarları kontrol edin.") ))
 
-    sc_all <- s$sc_bin
-    lc_all <- s$lc_raw
+    sc_all <- s$sc_bin; lc_all <- s$lc_raw
+    # Hata buradaydı: bnN tanımlıydı ama aşağıda binN çağrılıyordu.
     mcN <- mc_items_use(); tfN <- tf_items_use(); lcN <- lc_items_use(); bnN <- bin_items_use(); w <- s$weights
-
-    has_mc <- length(mcN) > 0
-    has_tf <- length(tfN) > 0
-    has_bn <- length(bnN) > 0
-    has_lc <- length(lcN) > 0
+    has_mc <- length(mcN) > 0; has_tf <- length(tfN) > 0; has_bn <- length(bnN) > 0; has_lc <- length(lcN) > 0
 
     cnt_mc <- if(has_mc) examly::student_counts(sc_all[, intersect(colnames(sc_all), mcN), drop=FALSE]) else NULL
     cnt_tf <- if(has_tf) examly::student_counts(sc_all[, intersect(colnames(sc_all), tfN), drop=FALSE]) else NULL
@@ -1319,8 +1370,8 @@ server <- function(input, output, session) {
     lc_sum <- if(has_lc) rowSums(lc_all[, intersect(colnames(lc_all), lcN), drop=FALSE], na.rm=TRUE) else rep(0, nrow(sc_all))
 
     yorumlar <- purrr::map_chr(seq_len(nrow(s$sc_bin)), function(i){
-      row_mctf <- s$sc_bin[i,,drop=TRUE]
-      row_lc <- s$lc_raw[i,,drop=TRUE]
+      row_mctf <- s$sc_bin[i,,drop=TRUE]; row_lc <- s$lc_raw[i,,drop=TRUE]
+      # DÜZELTME: binN -> bnN olarak değiştirildi
       student_item_comment(row_mctf, row_lc, w, mcN, tfN, bnN, lcN)
     })
 
@@ -1335,21 +1386,15 @@ server <- function(input, output, session) {
     lbl_tf_group  <- T_("TFGroupHeader", "D/Y Maddeler")
     lbl_bin_group <- T_("BINGroupHeader", "1-0 Maddeler")
     lbl_lc_group  <- T_("LCGroupHeader", "Uzun Cevaplı (Alınan Puan)")
-    lbl_correct   <- T_("Correct", "Doğru")
-    lbl_wrong     <- T_("Wrong",   "Yanlış")
-    lbl_blank     <- T_("Blank",   "Boş")
-    lbl_wscore    <- T_("WeightedScore", "Katsayılı Puan")
-    lbl_weak      <- T_("StudentWeakItems", "Kazanımlara Ait Eksiklik Olabilecek Maddeler")
+    lbl_correct   <- T_("Correct", "Doğru"); lbl_wrong     <- T_("Wrong",   "Yanlış"); lbl_blank     <- T_("Blank",   "Boş")
+    lbl_wscore    <- T_("WeightedScore", "Katsayılı Puan"); lbl_weak      <- T_("StudentWeakItems", "Kazanımlara Ait Eksiklik Olabilecek Maddeler")
 
     header1_elements <- list(tags$th(style=th_style, rowspan=2, lbl_student))
     if (has_mc) header1_elements <- c(header1_elements, list(tags$th(style=th_style, colspan=3, lbl_mc_group)))
     if (has_tf) header1_elements <- c(header1_elements, list(tags$th(style=th_style, colspan=3, lbl_tf_group)))
     if (has_bn) header1_elements <- c(header1_elements, list(tags$th(style=th_style, colspan=3, lbl_bin_group)))
     if (has_lc) header1_elements <- c(header1_elements, list(tags$th(style=th_style, rowspan=2, lbl_lc_group)))
-    header1_elements <- c(header1_elements, list(
-      tags$th(style=th_style, rowspan=2, lbl_wscore),
-      tags$th(style=th_style, rowspan=2, lbl_weak)
-    ))
+    header1_elements <- c(header1_elements, list(tags$th(style=th_style, rowspan=2, lbl_wscore), tags$th(style=th_style, rowspan=2, lbl_weak)))
     header1 <- do.call(tags$tr, header1_elements)
 
     header2_elements <- list()
@@ -1364,97 +1409,53 @@ server <- function(input, output, session) {
       if (has_tf) { row_elements <- c(row_elements, list(tags$td(style=td_style, cnt_tf$Dogru[i]), tags$td(style=td_style, cnt_tf$Yanlis[i]), tags$td(style=td_style, cnt_tf$Bos[i]))) }
       if (has_bn) { row_elements <- c(row_elements, list(tags$td(style=td_style, cnt_bn$Dogru[i]), tags$td(style=td_style, cnt_bn$Yanlis[i]), tags$td(style=td_style, cnt_bn$Bos[i]))) }
       if (has_lc) { row_elements <- c(row_elements, list(tags$td(style=td_style, round(lc_sum[i],3)))) }
-      row_elements <- c(row_elements, list(
-        tags$td(style=td_style, round(s$weighted_total[i],3)),
-        tags$td(style=paste0(td_style, " text-align:left;"), yorumlar[i])
-      ))
+      row_elements <- c(row_elements, list(tags$td(style=td_style, round(s$weighted_total[i],3)), tags$td(style=paste0(td_style, " text-align:left;"), yorumlar[i])))
       do.call(tags$tr, row_elements)
     })
-
-    tags$table(style=tbl_style,
-               tags$thead(header1, header2),
-               tags$tbody(rows)
-    )
+    tags$table(style=tbl_style, tags$thead(header1, header2), tags$tbody(rows))
   })
 
   output$student_summary_text_ui <- renderUI({
-    input$lang
-    s_proc <- student_scores_processed()
-    req(s_proc)
-    dict()
-
+    input$lang; s_proc <- student_scores_processed(); req(s_proc); dict()
     pass_text <- T_("StudentsPassed50", "Ağırlıklı puana göre 50 ve üzeri alan öğrenci sayısı")
-        pct_str <- ""
+    pct_str <- ""
     if (s_proc$n_total > 0) {
       pct_pass <- (s_proc$count_pass_50 / s_proc$n_total) * 100
       pct_str <- sprintf(" (%%%.1f)", pct_pass)
     }
-
-    tags$p(
-      style = "font-size: 16px;",
-      strong(paste0(pass_text, ": ", s_proc$count_pass_50, pct_str)),
-      " (", T_("TotalStudents", "Toplam"), ": ", s_proc$n_total, ")"
-    )
+    tags$p(style = "font-size: 16px;", strong(paste0(pass_text, ": ", s_proc$count_pass_50, pct_str)), " (", T_("TotalStudents", "Toplam"), ": ", s_proc$n_total, ")")
   })
 
   output$student_grade_plot <- renderPlot({
-    s_proc <- student_scores_processed()
-    req(s_proc, nrow(s_proc$df_grades) > 0)
-    dict()
+    s_proc <- student_scores_processed(); req(s_proc, nrow(s_proc$df_grades) > 0); dict()
     df_plot <- s_proc$df_grades %>%
       dplyr::group_by(Grades) %>%
       dplyr::summarise(Count = n(), .groups = 'drop') %>%
-      tidyr::complete(Grades = factor(s_proc$grades_i18n, levels = s_proc$grades_i18n),
-                      fill = list(Count = 0)) %>%
+      tidyr::complete(Grades = factor(s_proc$grades_i18n, levels = s_proc$grades_i18n), fill = list(Count = 0)) %>%
       dplyr::mutate(
         Total = sum(Count),
         Pct = ifelse(Total == 0, 0, Count / Total),
         Label = ifelse(Count == 0, "", sprintf("%d\n(%.1f%%)", Count, Pct * 100))
       )
-
-
     ggplot(df_plot, aes(x = Grades, y = Count, fill = Grades)) +
       geom_bar(stat = "identity", show.legend = FALSE) +
       geom_text(aes(label = Label), vjust = -0.5, size = 4.5, lineheight = 0.9) +
       scale_y_continuous(expand = expansion(mult = c(0, 0.15))) +
-      labs(
-        title = T_("GradeDistributionTitle", "Puan Kategorilerine Göre Öğrenci Dağılımı"),
-        x = T_("GradeCategory", "Puan Kategorisi"),
-        y = T_("StudentCount", "Öğrenci Sayısı")
-      ) +
+      labs(title = T_("GradeDistributionTitle", "Puan Kategorilerine Göre Öğrenci Dağılımı"), x = T_("GradeCategory", "Puan Kategorisi"), y = T_("StudentCount", "Öğrenci Sayısı")) +
       theme_minimal(base_size = 14) +
-      theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size=12),
-            plot.title = element_text(size = 18, face = "bold"),
-            axis.title = element_text(size = 14))
+      theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size=12), plot.title = element_text(size = 18, face = "bold"), axis.title = element_text(size = 14))
   })
 
   make_student_df <- function(s, mcN, tfN, binN, lcN, names_vec){
     dict()
-
-    sc_all <- s$sc_bin
-    lc_all <- s$lc_raw
-
-    has_mc <- length(mcN)  > 0
-    has_tf <- length(tfN)  > 0
-    has_bn <- length(binN) > 0
-    has_lc <- length(lcN)  > 0
-
+    sc_all <- s$sc_bin; lc_all <- s$lc_raw
+    has_mc <- length(mcN)  > 0; has_tf <- length(tfN)  > 0; has_bn <- length(binN) > 0; has_lc <- length(lcN)  > 0
     col_student <- T_("StudentsColHeader", "Öğrenci")
-    short_mc    <- T_("MCShort",  "ÇS")
-    short_tf    <- T_("TFShort",  "D/Y")
-    short_bin   <- T_("BINShort", "1-0")
-    lc_sum_lbl  <- T_("LCSumShort","Uzun Cev. Toplam")
+    short_mc    <- T_("MCShort",  "ÇS"); short_tf    <- T_("TFShort",  "D/Y"); short_bin   <- T_("BINShort", "1-0"); lc_sum_lbl  <- T_("LCSumShort","Uzun Cev. Toplam")
+    lbl_correct <- T_("Correct", "Doğru"); lbl_wrong   <- T_("Wrong",   "Yanlış"); lbl_blank   <- T_("Blank",   "Boş")
+    col_wscore  <- T_("WeightedScore",   "Katsayılı Puan"); col_weak    <- T_("StudentWeakItems","Kazanımlara Ait Eksiklik Olabilecek Maddeler")
 
-    lbl_correct <- T_("Correct", "Doğru")
-    lbl_wrong   <- T_("Wrong",   "Yanlış")
-    lbl_blank   <- T_("Blank",   "Boş")
-
-    col_wscore  <- T_("WeightedScore",   "Katsayılı Puan")
-    col_weak    <- T_("StudentWeakItems","Kazanımlara Ait Eksiklik Olabilecek Maddeler")
-
-    result_list <- list()
-    result_list[[col_student]] <- unname(names_vec)
-
+    result_list <- list(); result_list[[col_student]] <- unname(names_vec)
     if (has_mc) {
       cnt_mc <- examly::student_counts(sc_all[, intersect(colnames(sc_all), mcN), drop=FALSE])
       result_list[[paste(short_mc, lbl_correct)]] <- unname(cnt_mc$Dogru)
@@ -1477,60 +1478,38 @@ server <- function(input, output, session) {
       lc_sum <- rowSums(lc_all[, intersect(colnames(lc_all), lcN), drop=FALSE], na.rm=TRUE)
       result_list[[lc_sum_lbl]] <- unname(round(lc_sum, 3))
     }
-
     yorumlar <- purrr::map_chr(seq_len(nrow(s$sc_bin)), function(i){
       row_mctf <- s$sc_bin[i,,drop=TRUE]; row_lc <- s$lc_raw[i,,drop=TRUE]
       student_item_comment(row_mctf, row_lc, s$weights, mcN, tfN, binN, lcN)
     })
-
     result_list[[col_wscore]] <- unname(round(s$weighted_total, 3))
     result_list[[col_weak]]   <- unname(yorumlar)
-
     as_tibble(result_list)
   }
 
-    add_multiheader_ft <- function(ft){
-      dict()
+  add_multiheader_ft <- function(ft){
+    dict()
+    df_cols <- names(ft$body$dataset)
+    short_mc   <- T_("MCShort",  "ÇS"); short_tf   <- T_("TFShort",  "D/Y"); short_bin  <- T_("BINShort", "1-0"); lc_sum_lbl <- T_("LCSumShort","Uzun Cev. Toplam")
+    g_mc <- T_("MCGroupHeader", "Çoktan Seçmeli Maddeler"); g_tf <- T_("TFGroupHeader", "D/Y Maddeler"); g_bn <- T_("BINGroupHeader","1-0 Maddeler"); g_lc <- T_("LCGroupHeader", "Uzun Cevaplı (Alınan Puan)")
+    lbl_correct <- T_("Correct","Doğru"); lbl_wrong   <- T_("Wrong","Yanlış"); lbl_blank   <- T_("Blank","Boş")
 
-      df_cols <- names(ft$body$dataset)
+    has_mc <- any(df_cols %in% paste(short_mc, c(lbl_correct, lbl_wrong, lbl_blank)))
+    has_tf <- any(df_cols %in% paste(short_tf, c(lbl_correct, lbl_wrong, lbl_blank)))
+    has_bn <- any(df_cols %in% paste(short_bin, c(lbl_correct, lbl_wrong, lbl_blank)))
+    has_lc <- lc_sum_lbl %in% df_cols
 
-      short_mc   <- T_("MCShort",  "ÇS")
-      short_tf   <- T_("TFShort",  "D/Y")
-      short_bin  <- T_("BINShort", "1-0")
-      lc_sum_lbl <- T_("LCSumShort","Uzun Cev. Toplam")
+    header_values   <- list(""); header_colwidth <- list(1)
+    if (has_mc){ header_values <- c(header_values, g_mc); header_colwidth <- c(header_colwidth, 3) }
+    if (has_tf){ header_values <- c(header_values, g_tf); header_colwidth <- c(header_colwidth, 3) }
+    if (has_bn){ header_values <- c(header_values, g_bn); header_colwidth <- c(header_colwidth, 3) }
+    if (has_lc){ header_values <- c(header_values, "") ; header_colwidth <- c(header_colwidth, 1) }
+    header_values   <- c(header_values, "", ""); header_colwidth <- c(header_colwidth, 1, 1)
 
-      g_mc <- T_("MCGroupHeader", "Çoktan Seçmeli Maddeler")
-      g_tf <- T_("TFGroupHeader", "D/Y Maddeler")
-      g_bn <- T_("BINGroupHeader","1-0 Maddeler")
-      g_lc <- T_("LCGroupHeader", "Uzun Cevaplı (Alınan Puan)")
-
-      lbl_correct <- T_("Correct","Doğru")
-      lbl_wrong   <- T_("Wrong","Yanlış")
-      lbl_blank   <- T_("Blank","Boş")
-
-      has_mc <- any(df_cols %in% paste(short_mc, c(lbl_correct, lbl_wrong, lbl_blank)))
-      has_tf <- any(df_cols %in% paste(short_tf, c(lbl_correct, lbl_wrong, lbl_blank)))
-      has_bn <- any(df_cols %in% paste(short_bin, c(lbl_correct, lbl_wrong, lbl_blank)))
-      has_lc <- lc_sum_lbl %in% df_cols
-
-      header_values   <- list("")
-      header_colwidth <- list(1)
-
-      if (has_mc){ header_values <- c(header_values, g_mc); header_colwidth <- c(header_colwidth, 3) }
-      if (has_tf){ header_values <- c(header_values, g_tf); header_colwidth <- c(header_colwidth, 3) }
-      if (has_bn){ header_values <- c(header_values, g_bn); header_colwidth <- c(header_colwidth, 3) }
-      if (has_lc){ header_values <- c(header_values, "") ; header_colwidth <- c(header_colwidth, 1) }
-
-      header_values   <- c(header_values, "", "")
-      header_colwidth <- c(header_colwidth, 1, 1)
-
-      ft %>%
-        add_header_row(values = unlist(header_values), colwidths = unlist(header_colwidth)) %>%
-        merge_h(part = "header") %>%
-        align(align = "center", part = "all") %>%
-        theme_vanilla() %>%
-        autofit()
-    }
+    ft %>%
+      add_header_row(values = unlist(header_values), colwidths = unlist(header_colwidth)) %>%
+      merge_h(part = "header") %>% align(align = "center", part = "all") %>% theme_vanilla() %>% autofit()
+  }
 
   make_student_docx <- function(file, title, s, mcN, tfN, binN, lcN, names_vec){
     df <- make_student_df(s, mcN, tfN, binN, lcN, names_vec)
@@ -1620,11 +1599,11 @@ server <- function(input, output, session) {
             dplyr::summarise(Count = n(), .groups = 'drop') %>%
             tidyr::complete(Grades = factor(s_proc$grades_i18n, levels = s_proc$grades_i18n),
                             fill = list(Count = 0)) %>%
-          dplyr::mutate(
-            Total = sum(Count),
-            Pct = ifelse(Total == 0, 0, Count / Total),
-            Label = ifelse(Count == 0, "", sprintf("%d\n(%.1f%%)", Count, Pct * 100))
-          )
+            dplyr::mutate(
+              Total = sum(Count),
+              Pct = ifelse(Total == 0, 0, Count / Total),
+              Label = ifelse(Count == 0, "", sprintf("%d\n(%.1f%%)", Count, Pct * 100))
+            )
 
 
           p <- ggplot(df_plot, aes(x = Grades, y = Count, fill = Grades)) +
@@ -1686,6 +1665,7 @@ server <- function(input, output, session) {
         ItemName               = names(Y),
         Difficulty             = round(p, 3),
         Discrimination         = round(s$rjx, 3),
+        UL27Disc               = round(s$ul27, 3), # Rapor ciktiya da eklendi
         SD                     = round(item_sd, 3),
         Variance               = round(item_var, 3),
         ItemReliabilityIndex   = round(reliab, 3),
@@ -1696,7 +1676,8 @@ server <- function(input, output, session) {
       colnames(item_tbl) <- c(
         T_("ItemCol",            "Soru"),
         T_("DifficultyCol",      "Güçlük"),
-        T_("DiscriminationCol",  "Ayırt Edicilik"),
+        T_("DiscriminationCol",  "Ayırt Edicilik (rjx)"),
+        T_("UL27Col",            "Ayırt Edicilik (Alt-Üst %27)"),
         T_("SD",                 "S.D."),
         T_("VarianceCol",        "Varyans"),
         T_("ItemRelIndexCol",    "Madde Güvenirlik İndeksi"),
@@ -1779,7 +1760,7 @@ server <- function(input, output, session) {
         }
       }
       print(doc, target = file)
-          }
+    }
   )
 
   output$dl_rapor_ozet <- downloadHandler(
@@ -1788,6 +1769,10 @@ server <- function(input, output, session) {
       dict()
       s <- test_summary(); req(s)
 
+      # Binary veri kontrolune gore KR-20 veya Alpha secimi
+      rel_val <- if(s$is_all_binary && !is.na(s$kr20)) s$kr20 else s$alpha
+      rel_lbl <- if(s$is_all_binary && !is.na(s$kr20)) T_("KR20", "KR-20") else T_("CronbachAlpha", "Cronbach Alfa")
+
       row_labels <- c(
         StudentsCount     = T_("StudentsCount",     "Öğrenci Sayısı"),
         Median            = T_("Median",            "Medyan"),
@@ -1795,11 +1780,10 @@ server <- function(input, output, session) {
         Mean              = T_("Mean",              "Aritmetik Ortalama"),
         SD                = T_("SD",                "Standart Sapma"),
         AvgDifficulty     = T_("AvgDifficulty",     "Ortalama Güçlük (p)"),
-        AvgDiscrimination = T_("AvgDiscrimination", "Ortalama Ayırt Edicilik (rjx)"),
-        CronbachAlpha     = T_("CronbachAlpha",     "Cronbach Alfa"),
-        KR20              = T_("KR20",              "KR-20"),
-        LowerMax          = T_("LowerMax",          "Alt Grup Maks. Puan"),
-        UpperMin          = T_("UpperMin",          "Üst Grup Min. Puan"),
+        AvgDiscrimination = T_("AvgDiscrimination", "Ortalama Madde Ayırt Ediciliği (Korelasyon Bazlı)"),
+        # Psychometric satiri kaldirildi
+        AvgDiscriminationUL27 = T_("AvgDiscriminationUL27", "Ortalama Madde Ayırt Ediciliği (%27lik Alt-Üst Grup Bazlı)"),
+        Reliability       = rel_lbl,
         MaxWeighted       = T_("MaxWeighted",       "Alınabilecek Maksimum Puan"),
         WeightedExamMean  = T_("WeightedExamMean",  "Sınav Ortalaması (katsayılı)")
       )
@@ -1812,10 +1796,9 @@ server <- function(input, output, session) {
         SD                = round(s$sd, 2),
         AvgDifficulty     = round(s$avg_p, 2),
         AvgDiscrimination = round(s$avg_r, 2),
-        CronbachAlpha     = round(s$alpha, 2),
-        KR20              = round(s$kr20, 2),
-        LowerMax          = round(s$lower_max, 2),
-        UpperMin          = round(s$upper_min, 2),
+        # Psychometric satiri kaldirildi
+        AvgDiscriminationUL27 = round(s$avg_ul27, 2),
+        Reliability       = round(rel_val, 2),
         MaxWeighted       = round(s$max_weighted, 0),
         WeightedExamMean  = round(mean(s$weighted_total, na.rm = TRUE), 2)
       )
