@@ -221,7 +221,7 @@
 "Interp.Medium": "Medium",
 "Interp.Hard": "Hard",
 "Interp.VeryHard": "Very Hard",
-"Interp.Note": "Colors in the table are simplified to 3 groups (Low/Medium/High) for easier interpretation.",
+"Interp.Note": "Comments in the table are simplified to 3 groups (Low/Medium/High) for easier interpretation.",
 "AvgDiscrimination": "Mean Item Discrimination<br/>(Correlation Based)",
 "AvgDiscriminationUL27": "Mean Item Discrimination<br/>(Upper-Lower 27%)"
 }
