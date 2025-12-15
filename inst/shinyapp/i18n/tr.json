@@ -221,7 +221,7 @@
 "Interp.Medium": "Orta",
 "Interp.Hard": "Zor",
 "Interp.VeryHard": "Çok Zor",
-"Interp.Note": "Tabloda yorumlar kolay anlamlandırılabilmesi açısından 3 gruba (Düşük/Orta/Yüksek) indirgenmiştir.",
+"Interp.Note": "Tablodaki yorumlar kolay anlamlandırılabilmesi açısından 3 gruba (Düşük/Orta/Yüksek) indirgenmiştir.",
 "AvgDiscrimination": "Ortalama Madde Ayırt Ediciliği<br/>(Korelasyon Bazlı)",
 "AvgDiscriminationUL27": "Ortalama Madde Ayırt Ediciliği<br/>(%27'lik Alt-Üst Gruba Göre)"
 }
