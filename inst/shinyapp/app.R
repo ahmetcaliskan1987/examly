@@ -756,15 +756,22 @@ server <- function(input, output, session) {
     tf_names <- tf_items_use()
     lv <- mc_levels()
 
+    # --- MC (Çoktan Seçmeli) Bölümü ---
     mc <- setNames(rep(NA_character_, length(mc_names)), mc_names)
     if (length(mc_names) > 0 && isTruthy(input$mc_key_paste)) {
       raw_text_mc <- input$mc_key_paste
-      has_delimiter_mc <- grepl("[,;\\n\\t\\s]", raw_text_mc, perl = TRUE)
-      if (has_delimiter_mc) {
-        keys_pasted <- unlist(strsplit(raw_text_mc, "[,;\\n\\t\\s]+"))
+
+      # DEĞİŞİKLİK BURADA:
+      # Eğer metinde virgül veya noktalı virgül varsa ayraç olarak onları kullan
+      if (grepl("[,;]", raw_text_mc)) {
+        keys_pasted <- unlist(strsplit(raw_text_mc, "[,;\\n\\t]+"))
       } else {
-        keys_pasted <- unlist(strsplit(raw_text_mc, ""))
+        # Yoksa (örneğin A B C D veya ABCD), tüm boşlukları (space, tab, enter) sil
+        # ve kalan harfleri tek tek ayır.
+        clean_text <- gsub("\\s+", "", raw_text_mc)
+        keys_pasted <- unlist(strsplit(clean_text, ""))
       }
+
       keys_pasted <- trimws(keys_pasted)
       keys_pasted <- keys_pasted[keys_pasted != ""]
       keys_pasted <- toupper(keys_pasted)
@@ -778,15 +785,19 @@ server <- function(input, output, session) {
       }
     }
 
+    # --- TF (Doğru/Yanlış) Bölümü ---
     tf <- setNames(rep(NA_character_, length(tf_names)), tf_names)
     if (length(tf_names) > 0 && isTruthy(input$tf_key_paste)) {
       raw_text_tf <- input$tf_key_paste
-      has_delimiter_tf <- grepl("[,;\\n\\t\\s]", raw_text_tf, perl = TRUE)
-      if (has_delimiter_tf) {
-        keys_pasted_tf <- unlist(strsplit(raw_text_tf, "[,;\\n\\t\\s]+"))
+
+      # DEĞİŞİKLİK BURADA (Aynı mantık):
+      if (grepl("[,;]", raw_text_tf)) {
+        keys_pasted_tf <- unlist(strsplit(raw_text_tf, "[,;\\n\\t]+"))
       } else {
-        keys_pasted_tf <- unlist(strsplit(raw_text_tf, ""))
+        clean_text_tf <- gsub("\\s+", "", raw_text_tf)
+        keys_pasted_tf <- unlist(strsplit(clean_text_tf, ""))
       }
+
       keys_pasted_tf <- trimws(keys_pasted_tf)
       keys_pasted_tf <- keys_pasted_tf[keys_pasted_tf != ""]
       keys_pasted_tf <- toupper(keys_pasted_tf)
