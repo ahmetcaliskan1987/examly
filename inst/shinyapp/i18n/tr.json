@@ -11,6 +11,8 @@
 
   "ExamTitleLabel": "Sınav Başlığı",
   "ExamTitleDefault": "Sınav Başlığı",
+  "SchoolName": "Okul",
+  "ClassName": "Sınıf/Şube",
   "UploadData": "Veri Yükleyin (CSV / Excel)",
   "HasHeader": "Başlık satırı var (CSV için)",
   "Separator": "Ayraç (CSV için)",
@@ -222,6 +224,22 @@
 "Interp.Hard": "Zor",
 "Interp.VeryHard": "Çok Zor",
 "Interp.Note": "Tablodaki yorumlar kolay anlamlandırılabilmesi açısından 3 gruba (Düşük/Orta/Yüksek) indirgenmiştir.",
-"AvgDiscrimination": "Ortalama Madde Ayırt Ediciliği<br/>(Korelasyon Bazlı)",
-"AvgDiscriminationUL27": "Ortalama Madde Ayırt Ediciliği<br/>(%27'lik Alt-Üst Gruba Göre)"
+"AvgDiscrimination": "Ortalama Madde Ayırt Ediciliği (Corrected Item-Total)",
+"AvgDiscriminationUL27": "Ortalama Madde Ayırt Ediciliği (%27'lik Alt-Üst Gruba Göre)",
+"LearningOutcome": "Kazanım",
+"LearningOutcomePlaceholder": "İsteğe bağlı kazanım yazın",
+"LearningOutcomesHeader": "Madde Kazanımları",
+"LearningOutcomesNote": "İsteğe bağlıdır. Girilirse en çok yanlış yapılan madde sıralamasında ilgili kazanım da gösterilir.",
+"FailureCount": "Yanlış/Düşük Puan Sayısı",
+"FailurePct": "Oran (%)",
+"MostFailedItemsRank": "En Çok Yanlış Yapılan Madde Sıralaması",
+"Skewness": "Çarpıklık Katsayısı",
+"Kurtosis": "Basıklık Katsayısı",
+"VersionUpdates": "Yeni Sürümde Güncellenenler",
+"UpdateModernUI": "Shiny arayüzü modern kart, tablo ve kaydırılabilir panel yapılarıyla yenilendi.",
+"UpdateItemTypes": "Madde tipi seçimi daha okunur ve kullanışlı kart düzenine taşındı.",
+"UpdateOutcomes": "İsteğe bağlı madde kazanımları eklendi ve en çok yanlış yapılan madde sıralamasında gösterildi.",
+"UpdateStats": "Test özetine corrected item-total ayırt edicilik, KR-20 gösterimi, çarpıklık ve basıklık katsayıları eklendi.",
+"UpdateReports": "Öğrenci sonuçları, madde sıralaması ve rapor ekranları daha okunur hale getirildi.",
+"Citation": "Akademik Kullanımda Atıf"
 }

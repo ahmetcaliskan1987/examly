@@ -6,7 +6,7 @@
 There are no reverse dependencies.
 
 ## Description of changes
-This is a minor update (0.2.0) including UI enhancements and statistical refinements:
+This is a minor update (0.3) including UI enhancements and statistical refinements:
 * Added UI helpers: 'Select All' for items and 'Distribute Weights' button.
 * Refined Statistics: Separated discrimination metrics (Point-biserial vs. UL27) and added interpretation guidelines based on literature.
 * Fixed a bug in parsing pasted answer keys with irregular spacing.

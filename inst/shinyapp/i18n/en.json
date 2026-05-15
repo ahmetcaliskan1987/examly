@@ -11,6 +11,8 @@
 
   "ExamTitleLabel": "Exam Title",
   "ExamTitleDefault": "Exam Title",
+  "SchoolName": "School",
+  "ClassName": "Class",
   "UploadData": "Upload Data (CSV / Excel)",
   "HasHeader": "Header row exists (for CSV)",
   "Separator": "Separator (for CSV)",
@@ -222,6 +224,22 @@
 "Interp.Hard": "Hard",
 "Interp.VeryHard": "Very Hard",
 "Interp.Note": "Comments in the table are simplified to 3 groups (Low/Medium/High) for easier interpretation.",
-"AvgDiscrimination": "Mean Item Discrimination<br/>(Correlation Based)",
-"AvgDiscriminationUL27": "Mean Item Discrimination<br/>(Upper-Lower 27%)"
+"AvgDiscrimination": "Mean Item Discrimination (Corrected Item-Total)",
+"AvgDiscriminationUL27": "Mean Item Discrimination (Upper-Lower 27%)",
+"LearningOutcome": "Learning Outcome",
+"LearningOutcomePlaceholder": "Optionally enter a learning outcome",
+"LearningOutcomesHeader": "Item Learning Outcomes",
+"LearningOutcomesNote": "Optional. If entered, the learning outcome is also shown in the most missed items ranking.",
+"FailureCount": "Incorrect/Low Score Count",
+"FailurePct": "Rate (%)",
+"MostFailedItemsRank": "Most Missed Items Ranking",
+"Skewness": "Skewness Coefficient",
+"Kurtosis": "Kurtosis Coefficient",
+"VersionUpdates": "Updated in This Version",
+"UpdateModernUI": "The Shiny interface was refreshed with modern cards, tables, and scrollable panels.",
+"UpdateItemTypes": "Item type selection was moved to a clearer and more usable card layout.",
+"UpdateOutcomes": "Optional item learning outcomes were added and shown in the most missed items ranking.",
+"UpdateStats": "The test summary now includes corrected item-total discrimination, KR-20 display, skewness, and kurtosis coefficients.",
+"UpdateReports": "Student results, item ranking, and report screens were made easier to read.",
+"Citation": "Citation for Academic Use"
 }
